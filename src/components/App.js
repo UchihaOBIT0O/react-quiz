@@ -68,6 +68,8 @@ function reducer(state, action) {
   }
 }
 
+const apiKey = "fytmWDyXUWe8LXYJxlXaOkWnxvMUQ0sLn2jsvNjN";
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const {
@@ -86,12 +88,50 @@ export default function App() {
     0
   );
 
+  function indexOfTrueValue(obj) {
+    const keys = Object.keys(obj);
+    return keys.indexOf(keys.find((key) => obj[key] === "true"));
+  }
+
   useEffect(() => {
-    fetch("http://localhost:8000/questions")
-      .then((res) => res.json())
-      .then((data) => dispatch({ type: "dataReceived", payload: data }))
-      .catch((err) => dispatch({ type: "dataFailed" }));
+    async function Fetch() {
+      try {
+        const res = await fetch(
+          `https://quizapi.io/api/v1/questions?apiKey=${apiKey}&category=linux&difficulty=Easy&limit=15&tags=Linux`
+        );
+        const data = await res.json();
+        const formattedData = data.map(function (obj) {
+          const newObj = {
+            question: obj.question,
+            id: obj.id,
+            options: Object.values(obj.answers).filter(
+              (value) => value !== null
+            ),
+            correctOption:
+              indexOfTrueValue(obj.correct_answers) === -1
+                ? indexOfTrueValue(obj.correct_answers) + 1
+                : indexOfTrueValue(obj.correct_answers),
+            points: 10,
+          };
+          return newObj;
+        });
+        dispatch({ type: "dataReceived", payload: formattedData });
+      } catch (error) {
+        dispatch({ type: "dataFailed" });
+      }
+    }
+
+    Fetch();
   }, []);
+
+  // useEffect(() => {
+  //   fetch("http://localhost:8000/questions")
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       dispatch({ type: "dataReceived", payload: data });
+  //     })
+  //     .catch((err) => dispatch({ type: "dataFailed" }));
+  // }, []);
 
   return (
     <div className="app">
